@@ -1,0 +1,6 @@
+#!/bin/sh
+
+export USERNAME='username'
+export PASSWORD='password'
+export TOKEN='token'
+
