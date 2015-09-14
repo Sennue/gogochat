@@ -25,7 +25,7 @@ func main() {
 
 	api := gogoapi.NewAPI([]gogoapi.WrapperFunc{gogoapi.Logger})
 	user := NewUserResource(1, "user", "password", "")
-	auth := gogoapi.NewAuthResource(privateKeyPath, publicKeyPath)
+	auth := gogoapi.NewAuthResource(privateKeyPath, publicKeyPath, 60)
 	api.AddResource(auth, "/auth", nil)
 	api.AddResource(user, "/user", []gogoapi.WrapperFunc{auth.AuthorizationRequired})
 	if err := api.Start(host, port); nil != err {
