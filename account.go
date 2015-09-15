@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-"fmt"
 
 	gogoapi "github.com/Sennue/gogoapi"
 )
@@ -50,7 +49,7 @@ func (accountResource *AccountResource) Post(request *http.Request) (int, interf
 	if err := json.Unmarshal(body, &accountObject); err != nil {
 		return gogoapi.HTTP_UNPROCESSABLE, gogoapi.JSONError{gogoapi.HTTP_UNPROCESSABLE, "Unprocessable entity."}, nil
 	}
-fmt.Println(accountObject)
+
 	rows, err := accountResource.createStatement.Query(
 		accountObject.DeviceId,
 		accountObject.Name,
@@ -71,7 +70,7 @@ fmt.Println(accountObject)
 		if nil != err {
 			return http.StatusInternalServerError, InternalServerError(err), nil
 		} else if !success {
-			return http.StatusConflict, gogoapi.JSONError{http.StatusForbidden, "Already registered."}, nil
+			return http.StatusConflict, gogoapi.JSONError{http.StatusConflict, "Already registered."}, nil
 		}
 		claims := AuthClaims("level 1", accountObject.Name, account_id)
 		return accountResource.auth.AuthTokenResponse(claims)
