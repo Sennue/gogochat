@@ -1,6 +1,8 @@
 #!/bin/sh
 
-export DEVICE_ID='device_id'
+export DEVICE_ID='FakeID:DEVICE-ID'
+export NAME='username'
+export EMAIL='username@host.com'
 export PASSWORD='password'
 export TOKEN='token'
 

@@ -48,6 +48,16 @@ func InternalServerError(err error) gogoapi.JSONError {
 	return gogoapi.JSONError{status, message}
 }
 
+func AuthClaims(accessToken, username string, account_id int) map[string]interface{} {
+	claims := make(map[string]interface{})
+	claims["AccessToken"] = accessToken
+	claims["CustomUserInfo"] = AuthUserInfo{
+		Username:  username,
+		AccountId: account_id,
+	}
+	return claims
+}
+
 func (validator *AuthValidator) Validate(request *http.Request) (bool, map[string]interface{}, gogoapi.StatusResponse) {
 	var credentials AuthCredentials
 
@@ -79,12 +89,7 @@ func (validator *AuthValidator) Validate(request *http.Request) (bool, map[strin
 		if nil != err {
 			return false, nil, InternalServerError(err)
 		}
-		claims := make(map[string]interface{})
-		claims["AccessToken"] = "level 1"
-		claims["CustomUserInfo"] = AuthUserInfo{
-			AccountId: account_id,
-			Username:  username,
-		}
+		claims := AuthClaims("level 1", username, account_id)
 		return true, claims, nil
 	}
 }

@@ -40,10 +40,12 @@ func main() {
 	defer db.Close()
 
 	api := gogoapi.NewAPI([]gogoapi.WrapperFunc{gogoapi.Logger})
-	user := NewUserResource(1, "user", "password", "")
 	validator := NewAuthValidator(db)
 	auth := gogoapi.NewAuthResource(privateKeyPath, publicKeyPath, 60, validator.Validate)
 	api.AddResource(auth, "/auth", nil)
+	account := NewAccountResource(auth, db)
+	api.AddResource(account, "/account", nil)
+	user := NewUserResource(1, "user", "password", "")
 	api.AddResource(user, "/user", []gogoapi.WrapperFunc{auth.AuthorizationRequired})
 	if err := api.Start(host, port); nil != err {
 		log.Fatal(err)
