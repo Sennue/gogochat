@@ -94,8 +94,6 @@ BEGIN
 END;
 $$ LANGUAGE 'plpgsql';
 
--- TODO:  Properly salt passwords:
--- http://stackoverflow.com/questions/2647158/how-can-i-hash-passwords-in-postgresql
 CREATE OR REPLACE FUNCTION generateUser(population bigint)
 	RETURNS TABLE(name varchar, email varchar, password varchar, salt varchar) AS
 $$
@@ -103,6 +101,7 @@ BEGIN
 	FOR i IN 1..population LOOP
 		name := generateFullName();
 		email := generateEmail(name, 1+xdy(2,2));
+		-- http://stackoverflow.com/questions/2647158/how-can-i-hash-passwords-in-postgresql
 		salt := gen_salt('bf', 8);
 		password := crypt('password', salt);
 		RETURN NEXT;
@@ -111,12 +110,12 @@ END;
 $$ LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION generateDevice(population bigint)
-	RETURNS TABLE(id varchar, user_id bigint) AS
+	RETURNS TABLE(id varchar, account_id bigint) AS
 $$
 BEGIN
 	FOR i IN 1..population LOOP
 		id := generateDeviceId();
-		user_id := i;
+		account_id := i;
 		RETURN NEXT;
 	END LOOP;
 END;
@@ -152,17 +151,17 @@ DECLARE
 	oldseed double precision = random();
 BEGIN
 	PERFORM setseed(pi() / 10);
-	INSERT INTO "user" (name, email, password, salt)
+	INSERT INTO account (name, email, password, salt)
 		SELECT * FROM generateUser(population);
-	INSERT INTO device (id, user_id)
-		SELECT generateDeviceId(), id FROM "user";
+	INSERT INTO device (device_id, account_id)
+		SELECT generateDeviceId(), account_id FROM account;
 	FOR i IN 1..population LOOP
 		INSERT INTO room (name, description)
 			SELECT initcap(generateSentence(xdy(1,3))), generateSentence(xdy(2,4));
 	END LOOP;
 	FOR i IN 1..3 LOOP
-		INSERT INTO message (user_id, room_id, body)
-			SELECT "user".id, room.id, generateSentence(xdy(1,9)) FROM "user" CROSS JOIN room;
+		INSERT INTO message (account_id, room_id, body)
+			SELECT account_id, room_id, generateSentence(xdy(1,9)) FROM account CROSS JOIN room;
 	END LOOP;
 	PERFORM setseed(oldseed);
 END;
@@ -175,7 +174,7 @@ BEGIN
 	DELETE FROM message;
 	DELETE FROM room;
 	DELETE FROM device;
-	DELETE FROM "user";
+	DELETE FROM account;
 END;
 $$ LANGUAGE 'plpgsql';
 
@@ -184,7 +183,7 @@ SELECT deleteData();
 SELECT generateDeterministicData(5);
 
 -- Data Test
-SELECT * from "user";
+SELECT * from account;
 SELECT * from device;
 SELECT * from room;
 SELECT * from message;

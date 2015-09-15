@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export USERNAME='username'
+export DEVICE_ID='device_id'
 export PASSWORD='password'
 export TOKEN='token'
 

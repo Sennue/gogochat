@@ -1,16 +1,18 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
 	"log"
 
 	gogoapi "github.com/Sennue/gogoapi"
+	_ "github.com/lib/pq"
 )
 
 const (
 	privateKeyPath = "keys/app.rsa"
-	publicKeyPath = "keys/app.rsa.pub"
+	publicKeyPath  = "keys/app.rsa.pub"
 )
 
 func main() {
@@ -23,9 +25,24 @@ func main() {
 	flag.Parse()
 	fmt.Printf("Listening on %s:%d\n", host, port)
 
+	dbdriver := "postgres"
+	dbhost := "localhost"
+	dbname := "gogochat"
+	dbuser := "gogochat"
+	dbpassword := "gogochat"
+	dboptions := "sslmode=disable"
+	dbDataSource := fmt.Sprintf(
+		"user=%s password=%s dbname=%s host=%s %s",
+		dbuser, dbpassword, dbname, dbhost, dboptions,
+	)
+	db, err := sql.Open(dbdriver, dbDataSource)
+	fatal(err)
+	defer db.Close()
+
 	api := gogoapi.NewAPI([]gogoapi.WrapperFunc{gogoapi.Logger})
 	user := NewUserResource(1, "user", "password", "")
-	auth := gogoapi.NewAuthResource(privateKeyPath, publicKeyPath, 60)
+	validator := NewAuthValidator(db)
+	auth := gogoapi.NewAuthResource(privateKeyPath, publicKeyPath, 60, validator.Validate)
 	api.AddResource(auth, "/auth", nil)
 	api.AddResource(user, "/user", []gogoapi.WrapperFunc{auth.AuthorizationRequired})
 	if err := api.Start(host, port); nil != err {
