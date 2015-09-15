@@ -67,14 +67,14 @@ BEGIN
 END;
 $$ LANGUAGE 'plpgsql';
 
-CREATE OR REPLACE FUNCTION generateEmail(maxuserlength integer, maxhostlength integer)
+CREATE OR REPLACE FUNCTION generateEmail(username varchar, hostlength integer)
 	RETURNS varchar AS
 $$
 DECLARE
 	result varchar = '';
 BEGIN
-	result = result || generateName(xdy(1,maxuserlength)) || '@';
-	result = result || generateName(xdy(1,maxhostlength)) || '.com';
+	result = result || lower(replace(username, ' ', '.')) || '@';
+	result = result || generateName(hostlength) || '.com';
 	RETURN lower(result);
 END;
 $$ LANGUAGE 'plpgsql';
@@ -102,9 +102,9 @@ $$
 BEGIN
 	FOR i IN 1..population LOOP
 		name := generateFullName();
-		email := generateEmail(8, 8);
-		password := lower(generateName(8+xdy(1,8)));
-		salt := upper(generateName(32));
+		email := generateEmail(name, 1+xdy(2,2));
+		salt := gen_salt('bf', 8);
+		password := crypt('password', salt);
 		RETURN NEXT;
 	END LOOP;
 END;

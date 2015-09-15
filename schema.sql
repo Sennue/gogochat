@@ -10,6 +10,7 @@ DROP ROLE IF EXISTS gogochat;
 CREATE ROLE gogochat PASSWORD 'gogochat' NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT LOGIN;
 CREATE DATABASE gogochat OWNER gogochat;
 \c gogochat
+CREATE EXTENSION pgcrypto;
 SET ROLE gogochat;
 
 -- Create Schema
