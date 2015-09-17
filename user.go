@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"io"
-	"log"
 	"net/http"
 
 	"code.google.com/p/go.crypto/scrypt"
@@ -28,9 +27,7 @@ func NewUserResource(id int, name, password, salt string) *UserResource {
 	if "" == salt {
 		saltBytes := make([]byte, SALT_BYTES)
 		_, err := io.ReadFull(rand.Reader, saltBytes)
-		if err != nil {
-			log.Fatal(err)
-		}
+		fatal(err)
 		salt = hex.EncodeToString(saltBytes)
 		password = HashPassword(password, salt)
 	}
@@ -39,13 +36,9 @@ func NewUserResource(id int, name, password, salt string) *UserResource {
 
 func HashPassword(password, salt string) string {
 	saltBytes, err := hex.DecodeString(salt)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fatal(err)
 	passwordBytes, err := scrypt.Key([]byte(password), saltBytes, 1<<14, 8, 1, HASH_BYTES)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fatal(err)
 	return hex.EncodeToString(passwordBytes)
 }
 
