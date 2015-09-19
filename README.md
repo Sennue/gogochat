@@ -1,7 +1,7 @@
 # gogochat
 JSON chat web API written in Go to demonstrate using the gogoapi micro framework.
 
-## Installation ##
+## Local Installation ##
 ```sh
   # run these commands once
   go get github.com/Sennue/gogochat
@@ -16,6 +16,28 @@ JSON chat web API written in Go to demonstrate using the gogoapi micro framework
   # copy token
   vim secure_curl.sh
   # enter token, repeat above steps if it expires
+```
+
+## Global Installation ##
+```sh
+  go get github.com/Sennue/gogochat
+  cd $GOPATH/src/github.com/Sennue/gogochat
+  go install
+  su
+  ln -s $GOPATH/bin/gogochat /usr/local/bin/gogochat
+  cp gogochat.rc.example /usr/local/etc/rc.d/gogochat
+  mkdir /usr/local/etc/gogochat
+  mkdir /usr/local/etc/gogochat/keys
+  cd /usr/local/etc/gogochat/keys/
+  openssl genrsa -out app.rsa 4096
+  openssl rsa -in app.rsa -pubout > app.rsa.pub
+  pw adduser gogochat -g gogochat -d /nonexistent -s /usr/sbin/nologin -c "gogochat service user"
+  vim /etc/rc.conf
+  # add gogochat_enable="YES" to run at boot
+  # Use the following to control the service:
+  # service gogochat start/restart/stop/status
+  # Use the following to control the service without starting at boo:
+  # service gogochat onestart/onerestart/onestop/onestatus
 ```
 
 ## Working With GitHub Keys ##
