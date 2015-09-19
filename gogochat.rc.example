@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # PROVIDE: gogochat
-# REQUIRE: networking syslog
+# REQUIRE: networking syslog postgresql
 # KEYWORD: 
  
 . /etc/rc.subr
