@@ -9,6 +9,11 @@ export CURL_OPTIONS='-sS'
 #printf "\n$API_VERB /$API_ENDPOINT\n"
 #curl "$API_HOST/$API_ENDPOINT" -X "$API_VERB" | python -m json.tool | less
 
+export API_VERB="GET"
+export API_ENDPOINT="ping"
+printf "\n$API_VERB /$API_ENDPOINT\n"
+curl $CURL_OPTIONS "$API_HOST/$API_ENDPOINT" -X "$API_VERB" | python -m json.tool #| less
+
 export API_VERB="POST"
 export API_ENDPOINT="account"
 export API_HEADER="Content-Type: application/json"
@@ -51,5 +56,5 @@ curl $CURL_OPTIONS -H "$API_HEADER" "$API_HOST/$API_ENDPOINT" -X "$API_VERB" | p
 
 #export API_ITEM="12345"
 #export API_ENDPOINT="todos/$API_ITEM"
-#curl -H "Authorization: $TOKEN" "$API_HOST/$API_ENDPOINT" -X GET | python -m json.tool | less
+#curl $CURL_OPTIONS -H "Authorization: $TOKEN" "$API_HOST/$API_ENDPOINT" -X GET | python -m json.tool | less
 
