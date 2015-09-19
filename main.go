@@ -1,6 +1,3 @@
-// TODO: daemonise
-// TODO: FreeBSD RC script http://biosphere.cc/software-engineering/freebsd-rc-script-go-daemons
-
 package main
 
 import (

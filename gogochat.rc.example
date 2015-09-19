@@ -1,0 +1,25 @@
+#!/bin/sh
+#
+# PROVIDE: gogochat
+# REQUIRE: networking syslog
+# KEYWORD: 
+ 
+. /etc/rc.subr
+ 
+name="gogochat"
+rcvar="gogochat_enable"
+command="/usr/local/bin/gogochat"
+ 
+gogochat_user="gogochat"
+gogochat_host="localhost"
+gogochat_port="8080"
+gogochat_public_key="/usr/local/etc/gogochat/keys/app.rsa.pub"
+gogochat_private_key="/usr/local/etc/gogochat/keys/app.rsa"
+ 
+start_cmd="/usr/sbin/daemon -f -u $gogochat_user $command --host $gogochat_host --port $gogochat_port --public $gogochat_public_key --private $gogochat_private_key"
+ 
+load_rc_config $name
+: ${gogochat_enable:=no}
+ 
+run_rc_command "$1"
+
