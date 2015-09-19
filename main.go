@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"log"
 	"log/syslog"
+	"os"
+	"os/signal"
+	"syscall"
 
 	gogoapi "github.com/Sennue/gogoapi"
 	_ "github.com/lib/pq"
@@ -48,8 +51,8 @@ func main() {
 	if syslog {
 		initSyslog(syslogTag)
 	}
-	log.Printf("Listening on %s:%d\n", host, port)
 
+	// initialize database
 	dbdriver := "postgres"
 	dboptions := "sslmode=disable"
 	dbDataSource := fmt.Sprintf(
@@ -58,10 +61,21 @@ func main() {
 	)
 	db, err := sql.Open(dbdriver, dbDataSource)
 	fatal(err)
-	defer db.Close()
-	defer log.Printf("Stopping %s.\n", syslogTag)
 
+	// cleanup routine
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		s := <-signals
+		db.Close()
+		log.Printf("Stopping %s on signal: %v\n", syslogTag, s)
+		os.Exit(1)
+	}()
+
+	// initialize api
 	api := gogoapi.NewAPI([]gogoapi.WrapperFunc{gogoapi.Logger})
+	ping := NewPingResource()
+	api.AddResource(ping, "/ping", nil)
 	validator := NewAuthValidator(db)
 	auth := gogoapi.NewAuthResource(privateKey, publicKey, 60, validator.Validate)
 	api.AddResource(auth, "/auth", nil)
@@ -69,6 +83,9 @@ func main() {
 	api.AddResource(account, "/account", nil)
 	user := NewUserResource(1, "user", "password", "")
 	api.AddResource(user, "/user", []gogoapi.WrapperFunc{auth.AuthorizationRequired})
+
+	// start server
+	log.Printf("Listening on %s:%d\n", host, port)
 	if err := api.Start(host, port); nil != err {
 		log.Fatal(err)
 	}
