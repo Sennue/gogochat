@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	API_VERSION          = "1.0.0"
 	DEFAULT_PROGRAM_NAME = "gogochat"
 	DEFAULT_HOST         = "localhost"
 	DEFAULT_PORT         = 8080
@@ -74,6 +75,9 @@ func main() {
 
 	// initialize api
 	api := gogoapi.NewAPI([]gogoapi.WrapperFunc{gogoapi.Logger})
+	version := NewVersionResource(API_VERSION)
+	api.AddResource(version, "/", nil)
+	api.AddResource(version, "/version", nil)
 	ping := NewPingResource()
 	api.AddResource(ping, "/ping", nil)
 	time := NewTimeResource()
