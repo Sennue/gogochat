@@ -76,6 +76,8 @@ func main() {
 	api := gogoapi.NewAPI([]gogoapi.WrapperFunc{gogoapi.Logger})
 	ping := NewPingResource()
 	api.AddResource(ping, "/ping", nil)
+	time := NewTimeResource()
+	api.AddResource(time, "/time", nil)
 	validator := NewAuthValidator(db)
 	auth := gogoapi.NewAuthResource(privateKey, publicKey, 60, validator.Validate)
 	api.AddResource(auth, "/auth", nil)
