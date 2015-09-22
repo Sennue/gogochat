@@ -26,7 +26,9 @@ CREATE TABLE IF NOT EXISTS account(
   name       TEXT NOT NULL,
   email      VARCHAR(320) NOT NULL UNIQUE,
   password   VARCHAR(128) NOT NULL,
-  salt       VARCHAR(128) NOT NULL
+  salt       VARCHAR(128) NOT NULL,
+  created    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  modified   TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 DROP TABLE IF EXISTS device CASCADE;
@@ -35,14 +37,18 @@ CREATE TABLE IF NOT EXISTS device(
   -- Android telephonyManager.getDeviceId() = 16
   -- Need prefix, may support other platforms
   device_id  VARCHAR(128) PRIMARY KEY,
-  account_id BIGINT NOT NULL REFERENCES account(account_id)
+  account_id BIGINT NOT NULL REFERENCES account(account_id),
+  created    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  modified   TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 DROP TABLE IF EXISTS room CASCADE;
 CREATE TABLE IF NOT EXISTS room(
   room_id     BIGSERIAL PRIMARY KEY,
   name        TEXT NOT NULL UNIQUE,
-  description TEXT NOT NULL
+  description TEXT NOT NULL,
+  created    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  modified   TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 DROP TABLE IF EXISTS message CASCADE;
@@ -50,7 +56,9 @@ CREATE TABLE IF NOT EXISTS message(
   message_id BIGSERIAL PRIMARY KEY,
   account_id BIGINT NOT NULL REFERENCES account(account_id),
   room_id    BIGINT NOT NULL REFERENCES room(room_id),
-  body       TEXT NOT NULL
+  body       TEXT NOT NULL,
+  created    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  modified   TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Account Creation
@@ -76,16 +84,32 @@ END;
 $$ LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION add_room(name varchar, description varchar)
-	RETURNS TABLE(success BOOLEAN, account_id BIGINT) AS
+	RETURNS TABLE(success BOOLEAN, room_id BIGINT) AS
 $$
 BEGIN
 	INSERT INTO room (name, description) VALUES (name, description);
-	account_id := currval('room_room_id_seq');
+	room_id := currval('room_room_id_seq');
 	success := TRUE;
 	RETURN NEXT;
 EXCEPTION
 	WHEN unique_violation THEN
-		account_id := 0;
+		room_id := 0;
+		success := FALSE;
+		RETURN NEXT;
+END;
+$$ LANGUAGE 'plpgsql';
+
+CREATE OR REPLACE FUNCTION add_message(account_id BIGINT, room_id BIGINT, body VARCHAR)
+	RETURNS TABLE(success BOOLEAN, message_id BIGINT) AS
+$$
+BEGIN
+	INSERT INTO message (account_id, room_id, body) VALUES (account_id, room_id, body);
+	message_id := currval('message_message_id_seq');
+	success := TRUE;
+	RETURN NEXT;
+EXCEPTION
+	WHEN unique_violation THEN
+		message_id := 0;
 		success := FALSE;
 		RETURN NEXT;
 END;

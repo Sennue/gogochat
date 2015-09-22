@@ -91,8 +91,10 @@ func main() {
 	api.AddResource(roomSet, "/room", []gogoapi.WrapperFunc{auth.AuthorizationRequired})
 	room := NewRoomResource(db)
 	api.AddResource(room, "/room/{room_id}", []gogoapi.WrapperFunc{auth.AuthorizationRequired})
-	user := NewUserResource(1, "user", "password", "")
-	api.AddResource(user, "/user", []gogoapi.WrapperFunc{auth.AuthorizationRequired})
+	messageSet := NewMessageSetResource(auth, db)
+	api.AddResource(messageSet, "/message", nil) // custom auth
+	message := NewMessageResource(db)
+	api.AddResource(message, "/message/{message_id}", []gogoapi.WrapperFunc{auth.AuthorizationRequired})
 
 	// start server
 	log.Printf("Listening on %s:%d\n", host, port)

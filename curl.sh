@@ -113,3 +113,20 @@ export API_DATA="{ \"name\": \"$API_DATA_NAME\", \"description\": \"$API_DATA_DE
 printf "\n$API_VERB /$API_ENDPOINT [random values]\n"
 curl $CURL_OPTIONS -H "$API_AUTH_HEADER" -H "$API_HEADER" -d "$API_DATA" "$API_HOST/$API_ENDPOINT" -X "$API_VERB" | python -m json.tool #| less
 
+export API_VERB="GET"
+export API_ITEM="1"
+export API_ENDPOINT="message/$API_ITEM"
+export API_AUTH_HEADER="Authorization: $TOKEN"
+printf "\n$API_VERB /$API_ENDPOINT\n"
+curl $CURL_OPTIONS -H "$API_AUTH_HEADER" "$API_HOST/$API_ENDPOINT" -X "$API_VERB" | python -m json.tool #| less
+
+export API_VERB="POST"
+export API_ENDPOINT="message"
+export API_AUTH="Authorization: $TOKEN"
+export API_AUTH_HEADER="Content-Type: application/json"
+export API_DATA_ROOM_ID="1"
+export API_DATA_BODY="Test Message: Hello, World!"
+export API_DATA="{ \"room_id\": \"$API_DATA_ROOM_ID\", \"body\": \"$API_DATA_BODY\" }"
+printf "\n$API_VERB /$API_ENDPOINT\n"
+curl $CURL_OPTIONS -H "$API_AUTH" -H "$API_AUTH_HEADER" -d "$API_DATA" "$API_HOST/$API_ENDPOINT" -X "$API_VERB" #| python -m json.tool #| less
+

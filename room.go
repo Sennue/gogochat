@@ -14,9 +14,10 @@ import (
 )
 
 type RoomObject struct {
-	RoomId      string `json:"room_id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	RoomId      string          `json:"room_id"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Messages    []MessageObject `json:"messages"`
 }
 
 type RoomSetResource struct {
@@ -26,8 +27,9 @@ type RoomSetResource struct {
 }
 
 type RoomResource struct {
-	db           *sql.DB
-	getStatement *sql.Stmt
+	db                  *sql.DB
+	getStatement        *sql.Stmt
+	getMessageStatement *sql.Stmt
 }
 
 func NewRoomSetResource(db *sql.DB) *RoomSetResource {
@@ -36,8 +38,7 @@ func NewRoomSetResource(db *sql.DB) *RoomSetResource {
 	)
 	fatal(err)
 	postStatement, err := db.Prepare(
-		"SELECT success, account_id FROM add_room($1, $2);",
-		//"INSERT INTO room (name, description) VALUES ($1, $2);",
+		"SELECT success, room_id FROM add_room($1, $2);", // name, description
 	)
 	fatal(err)
 	return &RoomSetResource{db, getStatement, postStatement}
@@ -107,7 +108,14 @@ func NewRoomResource(db *sql.DB) *RoomResource {
 			"WHERE room_id=$1;",
 	)
 	fatal(err)
-	return &RoomResource{db, getStatement}
+	getMessageStatement, err := db.Prepare(
+		"SELECT message_id, account_id, room_id, name, body, " +
+			"to_char(message.created, 'Dy Mon DD HH24:MI:SS TZ YYYY') FROM " +
+			"message JOIN account USING(account_id) " +
+			"WHERE room_id=$1 ORDER BY message_id;",
+	)
+	fatal(err)
+	return &RoomResource{db, getStatement, getMessageStatement}
 }
 
 func (r *RoomResource) Get(request *http.Request) (int, interface{}, http.Header) {
@@ -128,6 +136,7 @@ func (r *RoomResource) Get(request *http.Request) (int, interface{}, http.Header
 		return http.StatusInternalServerError, InternalServerError(err), nil
 	}
 
+	// Room
 	rows, err := r.getStatement.Query(
 		room_id,
 	)
@@ -153,5 +162,26 @@ func (r *RoomResource) Get(request *http.Request) (int, interface{}, http.Header
 		message := fmt.Sprintf("No room with id %s.", room_id)
 		return status, gogoapi.JSONMessage{status, message}, nil
 	}
+
+	// Room Messages
+	rows2, err := r.getMessageStatement.Query(result.RoomId)
+	if nil != err {
+		return http.StatusInternalServerError, InternalServerError(err), nil
+	}
+	defer rows2.Close()
+	for rows2.Next() {
+		var messageObject MessageObject
+		err = rows2.Scan(&messageObject.MessageId, &messageObject.AccountId, &messageObject.RoomId, &messageObject.Name, &messageObject.Body, &messageObject.Created)
+		if nil != err {
+			return http.StatusInternalServerError, InternalServerError(err), nil
+		} else {
+			result.Messages = append(result.Messages, messageObject)
+		}
+	}
+	err = rows2.Err()
+	if err != nil {
+		return http.StatusInternalServerError, InternalServerError(err), nil
+	}
+
 	return http.StatusOK, result, nil
 }
