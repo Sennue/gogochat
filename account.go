@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -60,6 +61,7 @@ func (accountResource *AccountResource) Post(request *http.Request) (int, interf
 		return http.StatusInternalServerError, InternalServerError(err), nil
 	}
 	if !rows.Next() {
+		err = fmt.Errorf("Database error.")
 		return http.StatusInternalServerError, InternalServerError(err), nil
 	} else {
 		var (
@@ -73,6 +75,7 @@ func (accountResource *AccountResource) Post(request *http.Request) (int, interf
 			return http.StatusConflict, gogoapi.JSONError{http.StatusConflict, "Already registered."}, nil
 		}
 		claims := AuthClaims("level 1", accountObject.Name, account_id)
-		return accountResource.auth.AuthTokenResponse(claims)
+		_, response, headers := accountResource.auth.AuthTokenResponse(claims)
+		return http.StatusCreated, response, headers
 	}
 }

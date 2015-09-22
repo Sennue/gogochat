@@ -87,6 +87,10 @@ func main() {
 	api.AddResource(auth, "/auth", nil)
 	account := NewAccountResource(auth, db)
 	api.AddResource(account, "/account", nil)
+	rooms := NewRoomsResource(db)
+	api.AddResource(rooms, "/rooms", []gogoapi.WrapperFunc{auth.AuthorizationRequired})
+	room := NewRoomResource(db)
+	api.AddResource(room, "/room/{room_id}", []gogoapi.WrapperFunc{auth.AuthorizationRequired})
 	user := NewUserResource(1, "user", "password", "")
 	api.AddResource(user, "/user", []gogoapi.WrapperFunc{auth.AuthorizationRequired})
 
