@@ -75,6 +75,22 @@ EXCEPTION
 END;
 $$ LANGUAGE 'plpgsql';
 
+CREATE OR REPLACE FUNCTION add_room(name varchar, description varchar)
+	RETURNS TABLE(success BOOLEAN, account_id BIGINT) AS
+$$
+BEGIN
+	INSERT INTO room (name, description) VALUES (name, description);
+	account_id := currval('room_room_id_seq');
+	success := TRUE;
+	RETURN NEXT;
+EXCEPTION
+	WHEN unique_violation THEN
+		account_id := 0;
+		success := FALSE;
+		RETURN NEXT;
+END;
+$$ LANGUAGE 'plpgsql';
+
 -- Verify Creation
 \dt gogochat.*
 

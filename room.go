@@ -2,23 +2,26 @@ package main
 
 import (
 	"database/sql"
-	//"encoding/json"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"io"
+	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	gogoapi "github.com/Sennue/gogoapi"
 )
 
 type RoomObject struct {
-	Id          int    `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
 
-type RoomsResource struct {
-	db           *sql.DB
-	getStatement *sql.Stmt
+type RoomSetResource struct {
+	db            *sql.DB
+	getStatement  *sql.Stmt
+	postStatement *sql.Stmt
 }
 
 type RoomResource struct {
@@ -26,16 +29,21 @@ type RoomResource struct {
 	getStatement *sql.Stmt
 }
 
-func NewRoomsResource(db *sql.DB) *RoomsResource {
+func NewRoomSetResource(db *sql.DB) *RoomSetResource {
 	getStatement, err := db.Prepare(
 		"SELECT room_id, name, description FROM room;",
 	)
 	fatal(err)
-	return &RoomsResource{db, getStatement}
+	postStatement, err := db.Prepare(
+		"SELECT success, account_id FROM add_room($1, $2);",
+		//"INSERT INTO room (name, description) VALUES ($1, $2);",
+	)
+	fatal(err)
+	return &RoomSetResource{db, getStatement, postStatement}
 }
 
-func (r *RoomsResource) Get(request *http.Request) (int, interface{}, http.Header) {
-	var result []RoomObject
+func (r *RoomSetResource) Get(request *http.Request) (int, interface{}, http.Header) {
+	result := make(map[string]RoomObject)
 
 	rows, err := r.getStatement.Query()
 	if nil != err {
@@ -44,7 +52,7 @@ func (r *RoomsResource) Get(request *http.Request) (int, interface{}, http.Heade
 	defer rows.Close()
 	for rows.Next() {
 		var (
-			room_id     int
+			room_id     int64
 			name        string
 			description string
 		)
@@ -52,7 +60,7 @@ func (r *RoomsResource) Get(request *http.Request) (int, interface{}, http.Heade
 		if nil != err {
 			return http.StatusInternalServerError, InternalServerError(err), nil
 		} else {
-			result = append(result, RoomObject{room_id, name, description})
+			result[strconv.FormatInt(room_id, 10)] = RoomObject{name, description}
 		}
 	}
 	err = rows.Err()
@@ -62,10 +70,47 @@ func (r *RoomsResource) Get(request *http.Request) (int, interface{}, http.Heade
 	return http.StatusOK, result, nil
 }
 
+func (r *RoomSetResource) Post(request *http.Request) (int, interface{}, http.Header) {
+	var (
+		roomObject RoomObject
+		room_id    int64
+		success    bool
+	)
+
+	body, err := ioutil.ReadAll(io.LimitReader(request.Body, READ_BUFFER_SIZE))
+	if nil != err {
+		return http.StatusInternalServerError, InternalServerError(err), nil
+	}
+	err = request.Body.Close()
+	if nil != err {
+		return http.StatusInternalServerError, InternalServerError(err), nil
+	}
+
+	if err := json.Unmarshal(body, &roomObject); nil != err {
+		return gogoapi.HTTP_UNPROCESSABLE, gogoapi.JSONError{gogoapi.HTTP_UNPROCESSABLE, "Unprocessable entity."}, nil
+	}
+
+	err = r.postStatement.QueryRow(
+		roomObject.Name,
+		roomObject.Description,
+	).Scan(&success, &room_id)
+	if nil != err {
+		return http.StatusInternalServerError, InternalServerError(err), nil
+	}
+	if !success {
+		status := http.StatusConflict
+		return status, gogoapi.JSONError{status, "Resource already exists."}, nil
+	} else {
+		result := make(map[string]RoomObject)
+		result[strconv.FormatInt(room_id, 10)] = roomObject
+		return http.StatusCreated, result, nil
+	}
+}
+
 func NewRoomResource(db *sql.DB) *RoomResource {
 	getStatement, err := db.Prepare(
-		"SELECT room_id, name, description FROM room " +
-			"WHERE room_id=$1",
+		"SELECT name, description FROM room " +
+			"WHERE room_id=$1;",
 	)
 	fatal(err)
 	return &RoomResource{db, getStatement}
@@ -73,12 +118,21 @@ func NewRoomResource(db *sql.DB) *RoomResource {
 
 func (r *RoomResource) Get(request *http.Request) (int, interface{}, http.Header) {
 	var (
-		result RoomObject
+		result  RoomObject
 		success bool = false
 	)
 
 	vars := mux.Vars(request)
 	room_id := vars["room_id"]
+
+	_, err := strconv.ParseInt(room_id, 10, 64)
+	if nil != err {
+		return http.StatusNoContent, nil, nil
+	}
+
+	if nil != err {
+		return http.StatusInternalServerError, InternalServerError(err), nil
+	}
 
 	rows, err := r.getStatement.Query(
 		room_id,
@@ -89,15 +143,14 @@ func (r *RoomResource) Get(request *http.Request) (int, interface{}, http.Header
 	defer rows.Close()
 	for rows.Next() {
 		var (
-			room_id     int
 			name        string
 			description string
 		)
-		err = rows.Scan(&room_id, &name, &description)
+		err = rows.Scan(&name, &description)
 		if nil != err {
 			return http.StatusInternalServerError, InternalServerError(err), nil
 		} else {
-			result = RoomObject{room_id, name, description}
+			result = RoomObject{name, description}
 			success = true
 		}
 	}
