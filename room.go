@@ -14,6 +14,7 @@ import (
 )
 
 type RoomObject struct {
+	RoomId      string `json:"room_id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
@@ -43,7 +44,7 @@ func NewRoomSetResource(db *sql.DB) *RoomSetResource {
 }
 
 func (r *RoomSetResource) Get(request *http.Request) (int, interface{}, http.Header) {
-	result := make(map[string]RoomObject)
+	var result []RoomObject
 
 	rows, err := r.getStatement.Query()
 	if nil != err {
@@ -51,16 +52,12 @@ func (r *RoomSetResource) Get(request *http.Request) (int, interface{}, http.Hea
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var (
-			room_id     int64
-			name        string
-			description string
-		)
-		err = rows.Scan(&room_id, &name, &description)
+		var roomObject RoomObject
+		err = rows.Scan(&roomObject.RoomId, &roomObject.Name, &roomObject.Description)
 		if nil != err {
 			return http.StatusInternalServerError, InternalServerError(err), nil
 		} else {
-			result[strconv.FormatInt(room_id, 10)] = RoomObject{name, description}
+			result = append(result, roomObject)
 		}
 	}
 	err = rows.Err()
@@ -73,7 +70,6 @@ func (r *RoomSetResource) Get(request *http.Request) (int, interface{}, http.Hea
 func (r *RoomSetResource) Post(request *http.Request) (int, interface{}, http.Header) {
 	var (
 		roomObject RoomObject
-		room_id    int64
 		success    bool
 	)
 
@@ -93,7 +89,7 @@ func (r *RoomSetResource) Post(request *http.Request) (int, interface{}, http.He
 	err = r.postStatement.QueryRow(
 		roomObject.Name,
 		roomObject.Description,
-	).Scan(&success, &room_id)
+	).Scan(&success, &roomObject.RoomId)
 	if nil != err {
 		return http.StatusInternalServerError, InternalServerError(err), nil
 	}
@@ -101,15 +97,13 @@ func (r *RoomSetResource) Post(request *http.Request) (int, interface{}, http.He
 		status := http.StatusConflict
 		return status, gogoapi.JSONError{status, "Resource already exists."}, nil
 	} else {
-		result := make(map[string]RoomObject)
-		result[strconv.FormatInt(room_id, 10)] = roomObject
-		return http.StatusCreated, result, nil
+		return http.StatusCreated, roomObject, nil
 	}
 }
 
 func NewRoomResource(db *sql.DB) *RoomResource {
 	getStatement, err := db.Prepare(
-		"SELECT name, description FROM room " +
+		"SELECT room_id, name, description FROM room " +
 			"WHERE room_id=$1;",
 	)
 	fatal(err)
@@ -142,15 +136,10 @@ func (r *RoomResource) Get(request *http.Request) (int, interface{}, http.Header
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var (
-			name        string
-			description string
-		)
-		err = rows.Scan(&name, &description)
+		err = rows.Scan(&result.RoomId, &result.Name, &result.Description)
 		if nil != err {
 			return http.StatusInternalServerError, InternalServerError(err), nil
 		} else {
-			result = RoomObject{name, description}
 			success = true
 		}
 	}
