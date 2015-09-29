@@ -1,5 +1,6 @@
 #!/bin/sh
 
+export CURL_USER_AGENT='user-agent'
 export DEVICE_ID='FakeID:DEVICE-ID'
 export NAME='username'
 export EMAIL='username@host.com'
